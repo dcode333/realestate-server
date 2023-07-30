@@ -1,16 +1,13 @@
-const app = require("express")();
+const express = require('express');
+const app = express();
+
+app.use(express.json());
 
 let chrome = {};
 let puppeteer;
 
-if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-  chrome = require("chrome-aws-lambda");
-  puppeteer = require("puppeteer-core");
-} else {
-  puppeteer = require("puppeteer");
-}
+async function scrapePisosData(url) {
 
-app.get("/api", async (req, res) => {
   let options = {};
 
   if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
@@ -24,19 +21,82 @@ app.get("/api", async (req, res) => {
   }
 
   try {
-    let browser = await puppeteer.launch(options);
+    const browser = await puppeteer.launch(options);
+    const page = await browser.newPage();
 
-    let page = await browser.newPage();
-    await page.goto("https://www.google.com");
-    res.send(await page.title());
-  } catch (err) {
-    console.error(err);
+    // Intercept requests to block images and unnecessary resources
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (request.resourceType() === 'image' || request.resourceType() === 'stylesheet') {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+
+    // Set a reasonable timeout for page navigation and selector wait
+    await page.goto(url, { timeout: 30000 });
+
+    // Wait for the content to load
+    await page.waitForSelector('.seolinks-zones', { timeout: 30000 });
+
+    const data = await page.evaluate(() => {
+      const container = document.querySelector('.seolinks-zones');
+      const columns = container.querySelectorAll('.column');
+
+      const result = [];
+
+      columns.forEach((column) => {
+        const links = column.querySelectorAll('.seolinks-zones-item');
+        const items = [];
+
+        links.forEach((link) => {
+          const href = link.getAttribute('href');
+          const classname = link.getAttribute('class');
+          const name = link.textContent.trim();
+
+          items.push({ href, classname, name });
+        });
+
+        result.push(items);
+      });
+
+      return result;
+    });
+
+    //   await browser.close();
+    return data;
+  } catch (error) {
+    console.error('Error:', error);
     return null;
   }
+}
+
+if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+  chrome = require("chrome-aws-lambda");
+  puppeteer = require("puppeteer-core");
+} else {
+  puppeteer = require("puppeteer");
+}
+
+app.get("/", async (req, res) => {
+
+  let baseUrl = 'https://www.pisos.com';
+
+  scrapePisosData(baseUrl)
+    .then((data) => {
+      let flatted = data?.flat();
+      res.status(200).send({ data: flatted, flag: "edium", success: true });
+    })
+    .catch((error) => {
+      console.error('Error occurred:', error);
+    });
+
+
 });
 
 app.listen(process.env.PORT || 3000, () => {
   console.log("Server started");
 });
 
-module.exports = app;
+module.exports = app; 
