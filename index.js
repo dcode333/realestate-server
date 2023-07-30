@@ -95,6 +95,33 @@ app.get("/", async (req, res) => {
 
 });
 
+app.post('/', (req, res) => {
+
+  const baseUrl = 'https://www.pisos.com';
+  const { flag, url } = req.body;
+
+  if (flag === "edium") {
+    scrapePisosData(baseUrl + url)
+      .then((data) => {
+        let flatted = data.flat();
+        res.status(200).send({ data: flatted, flag, success: true });
+      })
+      .catch((error) => {
+        res.status(500).send({ error, success: false });
+      });
+  }
+
+  else if (flag === "-item" || flag === "bitem") {
+    res.status(200).send({ data: [], flag, success: true });
+  }
+
+  else res.status(500).send({ error: "Internal server error", success: false });
+
+});
+
+
+
+
 app.listen(process.env.PORT || 3000, () => {
   console.log("Server started");
 });
