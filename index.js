@@ -1,112 +1,104 @@
+const Xray = require('x-ray');
+const x = Xray();
 const express = require('express');
 const app = express();
 const cors = require('cors');
 
+// let chrome = {};
+// let puppeteer;
+
 app.use(express.json());
 app.use(cors());
 
-let chrome = {};
-let puppeteer;
 
-async function scrapePisosData(url) {
 
-  let options = {};
-
-  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-    options = {
-      args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
-      defaultViewport: chrome.defaultViewport,
-      executablePath: await chrome.executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
-    };
-  }
-
-  try {
-    const browser = await puppeteer.launch(options);
-    const page = await browser.newPage();
-
-    // Intercept requests to block images and unnecessary resources
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      if (request.resourceType() === 'image' || request.resourceType() === 'stylesheet') {
-        request.abort();
+function isPresent(url) {
+  return new Promise((resolve, reject) => {
+    x(url, '#ComponenteSEO', [{
+      class: '@class',
+    }])((error, results) => {
+      if (error) {
+        reject(error);
       } else {
-        request.continue();
+        resolve(results);
       }
-    });
+    })
+  })
 
-    // Set a reasonable timeout for page navigation and selector wait
-    await page.goto(url, { timeout: 30000 });
-
-    // Wait for the content to load
-    await page.waitForSelector('.seolinks-zones', { timeout: 30000 });
-
-    const data = await page.evaluate(() => {
-      const container = document.querySelector('.seolinks-zones');
-      const columns = container.querySelectorAll('.column');
-
-      const result = [];
-
-      columns.forEach((column) => {
-        const links = column.querySelectorAll('.seolinks-zones-item');
-        const items = [];
-
-        links.forEach((link) => {
-          const href = link.getAttribute('href');
-          const classname = link.getAttribute('class');
-          const name = link.textContent.trim();
-
-          items.push({ href, classname, name });
-        });
-
-        result.push(items);
-      });
-
-      return result;
-    });
-
-    //   await browser.close();
-    return data;
-  } catch (error) {
-    console.error('Error:', error);
-    return null;
-  }
 }
 
-if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-  chrome = require("chrome-aws-lambda");
-  puppeteer = require("puppeteer-core");
-} else {
-  puppeteer = require("puppeteer");
+function getProvincesInfo(url) {
+  return new Promise((resolve, reject) => {
+    isPresent(url).then((results) => {
+      if (results?.length > 0) {
+        x(url, `#ComponenteSEO > div.seolinks-zones.clearfix > div.column`, [{
+          links: x('a', [{
+            name: '@text',
+            href: '@href',
+            classname: '@class'
+          }])
+        }])((error, results) => {
+          if (error) {
+            reject(error);
+          } else {
+            const allLinks = results.flatMap(item => item.links);
+            resolve(allLinks);
+          }
+        });
+      }
+      else {
+        x(url, 'body > div.body > div.content.subHome > div.zoneList > div:nth-child(2)', [{
+          outerDivs: x('div:nth-child(n)', [{
+            innerDivs: x('div:nth-child(n)', [{
+              links: x('a', [{
+                name: '@text',
+                href: '@href',
+                classname: '@class'
+              }])
+            }])
+          }])
+        }])((altError, altResults) => {
+          if (altError) {
+            reject(altError);
+          } else {
+            const allLinks = altResults.flatMap(item =>
+              item.outerDivs.flatMap(outerDivItem =>
+                outerDivItem.innerDivs.flatMap(innerDivItem =>
+                  innerDivItem.links
+                )
+              )
+            );
+            resolve(allLinks);
+          }
+        });
+      }
+    }).catch((error) => {
+      reject(error)
+    })
+  })
 }
 
 app.get("/", async (req, res) => {
 
-  let baseUrl = 'https://www.pisos.com';
+  let baseUrl = 'https://www.pisos.com/';
 
-  scrapePisosData(baseUrl)
+  getProvincesInfo(baseUrl)
     .then((data) => {
-      let flatted = data?.flat();
-      res.status(200).send({ data: flatted, flag: "edium", success: true });
+      res.status(200).send({ data, success: true });
     })
     .catch((error) => {
-      console.error('Error occurred:', error);
-    });
-
-
+      res.status(500).send({ error, success: false });
+    })
 });
 
-app.post('/', (req, res) => {
+app.post('/', async (req, res) => {
 
-  const baseUrl = 'https://www.pisos.com';
   const { flag, url } = req.body;
 
   if (flag === "edium") {
-    scrapePisosData(baseUrl + url)
-      .then((data) => {
-        let flatted = data.flat();
-        res.status(200).send({ data: flatted, flag, success: true });
+    getProvincesInfo(url)
+      .then(data => {
+        res.status(200).send({ data, flag, success: true });
       })
       .catch((error) => {
         res.status(500).send({ error, success: false });
@@ -114,6 +106,7 @@ app.post('/', (req, res) => {
   }
 
   else if (flag === "-item" || flag === "bitem") {
+    console.log("flag", flag);
     res.status(200).send({ data: [], flag, success: true });
   }
 
@@ -122,10 +115,10 @@ app.post('/', (req, res) => {
 });
 
 
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on ${PORT} `);
+})
 
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server started");
-});
-
-module.exports = app; 
+module.exports = app;
