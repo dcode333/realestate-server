@@ -101,11 +101,11 @@ function getPropertiesInfo(url) {
   })
 }
 
-app.get("/props", async (req, res) => {
+app.post("/props", async (req, res) => {
 
-  let baseUrl = 'https://www.pisos.com/venta/pisos-burgos/';
+  const { url } = req.body;
 
-  getPropertiesInfo(baseUrl)
+  getPropertiesInfo(url)
     .then((data) => {
       res.status(200).send({ data, success: true });
     })
