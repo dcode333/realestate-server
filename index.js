@@ -78,6 +78,42 @@ function getProvincesInfo(url) {
   })
 }
 
+function getPropertiesInfo(url) {
+  return new Promise((resolve, reject) => {
+    x(url, '#main > div.grid__body > div > div.grid__wrapper > div.ad-preview', [{
+      id: '@id',
+      price: 'div.ad-preview__bottom > div.ad-preview__info > div.ad-preview__section.ad-preview__section--has-textlink > div > span',
+      description: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(2) > a',
+      subDescription: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(2) > p',
+      attributeA: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(1)',
+      attributeB: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(2)',
+      attributeC: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(3)',
+      attributeD: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(4)',
+      punchLine: 'div.ad-preview__bottom > div.ad-preview__info > div.ad-preview__section.u-hide.u-show--s768 > p',
+      href: '@data-lnk-href'
+    }])((error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    })
+  })
+}
+
+app.get("/props", async (req, res) => {
+
+  let baseUrl = 'https://www.pisos.com/venta/pisos-burgos/';
+
+  getPropertiesInfo(baseUrl)
+    .then((data) => {
+      res.status(200).send({ data, success: true });
+    })
+    .catch((error) => {
+      res.status(500).send({ error, success: false });
+    })
+});
+
 app.get("/", async (req, res) => {
 
   let baseUrl = 'https://www.pisos.com/';
@@ -122,3 +158,4 @@ app.listen(PORT, () => {
 
 
 module.exports = app;
+
