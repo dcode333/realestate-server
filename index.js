@@ -12,9 +12,9 @@ app.use(cors());
 
 
 
-function isPresent(url) {
+function isPresent(url, selector) {
   return new Promise((resolve, reject) => {
-    x(url, '#ComponenteSEO', [{
+    x(url, selector, [{
       class: '@class',
     }])((error, results) => {
       if (error) {
@@ -29,7 +29,7 @@ function isPresent(url) {
 
 function getProvincesInfo(url) {
   return new Promise((resolve, reject) => {
-    isPresent(url).then((results) => {
+    isPresent(url, '#ComponenteSEO').then((results) => {
       if (results?.length > 0) {
         x(url, `#ComponenteSEO > div.seolinks-zones.clearfix > div.column`, [{
           links: x('a', [{
