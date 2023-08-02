@@ -3,7 +3,7 @@ const x = Xray();
 const express = require('express');
 const app = express();
 const cors = require('cors');
-
+const baseUrl = 'https://www.pisos.com/';
 // let chrome = {};
 // let puppeteer;
 
@@ -85,12 +85,14 @@ function getPropertiesInfo(url) {
       price: 'div.ad-preview__bottom > div.ad-preview__info > div.ad-preview__section.ad-preview__section--has-textlink > div > span',
       description: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(2) > a',
       subDescription: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(2) > p',
+      tag: 'div.ad-preview__top > div.ad-preview__product > div > span',
       attributeA: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(1)',
       attributeB: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(2)',
       attributeC: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(3)',
       attributeD: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(4)',
       punchLine: 'div.ad-preview__bottom > div.ad-preview__info > div.ad-preview__section.u-hide.u-show--s768 > p',
-      href: '@data-lnk-href'
+      href: '@data-lnk-href',
+      image: 'div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div@data-bg'
     }])((error, results) => {
       if (error) {
         reject(error);
@@ -116,8 +118,6 @@ app.post("/props", async (req, res) => {
 
 app.get("/", async (req, res) => {
 
-  let baseUrl = 'https://www.pisos.com/';
-
   getProvincesInfo(baseUrl)
     .then((data) => {
       res.status(200).send({ data, success: true });
@@ -142,7 +142,6 @@ app.post('/', async (req, res) => {
   }
 
   else if (flag === "-item" || flag === "bitem") {
-    console.log("flag", flag);
     res.status(200).send({ data: [], flag, success: true });
   }
 
@@ -159,3 +158,7 @@ app.listen(PORT, () => {
 
 module.exports = app;
 
+
+//div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div
+//div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div.carousel__main-photo--mosaic
+//div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div.carousel__main-photo--mosaic.carousel__main-photo--as-img > img
