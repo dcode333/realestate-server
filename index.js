@@ -11,7 +11,6 @@ app.use(express.json());
 app.use(cors());
 
 
-
 function isPresent(url, selector) {
   return new Promise((resolve, reject) => {
     x(url, selector, [{
@@ -35,7 +34,8 @@ function getProvincesInfo(url) {
           links: x('a', [{
             name: '@text',
             href: '@href',
-            classname: '@class'
+            classname: '@class',
+            tagName: '@id'
           }])
         }])((error, results) => {
           if (error) {
@@ -103,10 +103,9 @@ function getPropertiesInfo(url) {
   })
 }
 
-app.post("/props", async (req, res) => {
+app.post("/props", (req, res) => {
 
   const { url } = req.body;
-
   getPropertiesInfo(url)
     .then((data) => {
       res.status(200).send({ data, success: true });
@@ -114,9 +113,10 @@ app.post("/props", async (req, res) => {
     .catch((error) => {
       res.status(500).send({ error, success: false });
     })
+
 });
 
-app.get("/", async (req, res) => {
+app.get("/", (req, res) => {
 
   getProvincesInfo(baseUrl)
     .then((data) => {
@@ -125,27 +125,28 @@ app.get("/", async (req, res) => {
     .catch((error) => {
       res.status(500).send({ error, success: false });
     })
+
 });
 
-app.post('/', async (req, res) => {
+app.post('/', (req, res) => {
 
   const { flag, url } = req.body;
 
-  if (flag === "edium") {
-    getProvincesInfo(url)
-      .then(data => {
-        res.status(200).send({ data, flag, success: true });
-      })
-      .catch((error) => {
-        res.status(500).send({ error, success: false });
-      });
-  }
-
-  else if (flag === "-item" || flag === "bitem") {
-    res.status(200).send({ data: [], flag, success: true });
-  }
-
-  else res.status(500).send({ error: "Internal server error", success: false });
+  isPresent(url, '.grid__wrapper')
+    .then(results => {
+      if (results?.length > 0)
+        res.status(200).send({ data: [], flag: 'bitem', success: true });
+      else {
+        getProvincesInfo(url)
+          .then(data => {
+            res.status(200).send({ data, flag: 'edium', success: true });
+          })
+          .catch((error) => {
+            res.status(500).send({ error, success: false });
+          });
+      }
+    })
+    .catch(e => res.status(500).send({ error, success: false }))
 
 });
 
@@ -158,7 +159,3 @@ app.listen(PORT, () => {
 
 module.exports = app;
 
-
-//div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div
-//div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div.carousel__main-photo--mosaic
-//div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div.carousel__main-photo--mosaic.carousel__main-photo--as-img > img
