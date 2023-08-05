@@ -103,6 +103,29 @@ function getPropertiesInfo(url) {
   })
 }
 
+
+function getPropertyDetail(url) {
+  return new Promise((resolve, reject) => {
+    x(url, 'body > div.body > div.detail', [{
+      description: 'div.maindata > div > div.maindata-info > h1',
+      subDescription: 'div.maindata > div > div.maindata-info > h2',
+      price: 'div.maindata > div > div.maindata-box > div.priceBox > div > div > span',
+      tag: 'div.mainphoto > div > div.product > div',
+      number: '#dvFormContactar > div.floatcontact-phone.phone > span.number.one',
+      detail: '#descriptionBody',
+      basicData: '#characteristics > div:nth-child(1) > div.charblock-right',
+      equips:'#characteristics > div:nth-child(3) > div.charblock-right'
+    }])((error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    })
+  })
+}
+
+
 app.post("/props", (req, res) => {
 
   const { url } = req.body;
@@ -149,6 +172,21 @@ app.post('/', (req, res) => {
     .catch(e => res.status(500).send({ error, success: false }))
 
 });
+
+app.post('/detail', (req, res) => {
+
+  const { url } = req.body;
+  // const url = "https://www.pisos.com/comprar/piso-burela_centro_urbano-945856908238215_109700/"
+  getPropertyDetail(url)
+    .then((data) => {
+      res.status(200).send({ data, success: true });
+    })
+    .catch((error) => {
+      res.status(500).send({ error, success: false });
+    })
+
+
+})
 
 
 const PORT = process.env.PORT || 3000;
