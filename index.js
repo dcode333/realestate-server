@@ -103,7 +103,6 @@ function getPropertiesInfo(url) {
   })
 }
 
-
 function getPropertyDetail(url) {
   return new Promise((resolve, reject) => {
     x(url, 'body > div.body > div.detail', [{
@@ -114,7 +113,22 @@ function getPropertyDetail(url) {
       number: '#dvFormContactar > div.floatcontact-phone.phone > span.number.one',
       detail: '#descriptionBody',
       basicData: '#characteristics > div:nth-child(1) > div.charblock-right',
-      equips:'#characteristics > div:nth-child(3) > div.charblock-right'
+      equips: '#characteristics > div:nth-child(3) > div.charblock-right',
+      date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div'
+    }])((error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    })
+  })
+}
+
+function getPropertyListedDate(url) {
+  return new Promise((resolve, reject) => {
+    x(url, 'body > div.body > div.detail', [{
+      date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div'
     }])((error, results) => {
       if (error) {
         reject(error);
@@ -148,12 +162,12 @@ app.get("/", (req, res) => {
     .catch((error) => {
       res.status(500).send({ error, success: false });
     })
-
 });
+
 
 app.post('/', (req, res) => {
 
-  const { flag, url } = req.body;
+  const { url } = req.body;
 
   isPresent(url, '.grid__wrapper')
     .then(results => {
@@ -176,6 +190,7 @@ app.post('/', (req, res) => {
 app.post('/detail', (req, res) => {
 
   const { url } = req.body;
+  //phone inc
   // const url = "https://www.pisos.com/comprar/piso-burela_centro_urbano-945856908238215_109700/"
   getPropertyDetail(url)
     .then((data) => {
@@ -184,8 +199,19 @@ app.post('/detail', (req, res) => {
     .catch((error) => {
       res.status(500).send({ error, success: false });
     })
+})
 
+app.post('/date', (req, res) => {
 
+  const { url } = req.body;
+
+  getPropertyListedDate(url)
+    .then((data) => {
+      res.status(200).send({ data, success: true });
+    })
+    .catch((error) => {
+      res.status(500).send({ error, success: false });
+    })
 })
 
 
@@ -194,6 +220,4 @@ app.listen(PORT, () => {
   console.log(`Server is running on ${PORT} `);
 })
 
-
 module.exports = app;
-
