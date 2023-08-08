@@ -101,6 +101,7 @@ function getPropertiesInfo(url) {
       }
     })
   })
+
 }
 
 function getPropertyDetail(url) {
@@ -125,6 +126,7 @@ function getPropertyDetail(url) {
   })
 }
 
+
 function getPropertyListedDate(url) {
   return new Promise((resolve, reject) => {
     x(url, 'body > div.body > div.detail', [{
@@ -143,7 +145,8 @@ function getPropertyListedDate(url) {
 app.post("/props", (req, res) => {
 
   const { url } = req.body;
-  getPropertiesInfo(url)
+  const latestUrl = url + 'fecharecientedesde-desc/'
+  getPropertiesInfo(latestUrl)
     .then((data) => {
       res.status(200).send({ data, success: true });
     })
