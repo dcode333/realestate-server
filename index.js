@@ -115,7 +115,8 @@ function getPropertyDetail(url) {
       detail: '#descriptionBody',
       basicData: '#characteristics > div:nth-child(1) > div.charblock-right',
       equips: '#characteristics > div:nth-child(3) > div.charblock-right',
-      date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div'
+      date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div',
+      realEstate:'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > a'
     }])((error, results) => {
       if (error) {
         reject(error);
@@ -192,7 +193,7 @@ app.post('/', (req, res) => {
 
 app.post('/detail', (req, res) => {
 
-  const { url } = req.body;
+  const { url } = req.body; 
   //phone inc
   // const url = "https://www.pisos.com/comprar/piso-burela_centro_urbano-945856908238215_109700/"
   getPropertyDetail(url)
