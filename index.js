@@ -92,7 +92,8 @@ function getPropertiesInfo(url) {
       attributeD: 'div.ad-preview__bottom > div.ad-preview__info > div:nth-child(3) > div > p:nth-child(4)',
       punchLine: 'div.ad-preview__bottom > div.ad-preview__info > div.ad-preview__section.u-hide.u-show--s768 > p',
       href: '@data-lnk-href',
-      image: 'div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div@data-bg'
+      image: 'div.ad-preview__top > div.carousel > div.carousel__container > div:nth-child(2) > div@data-bg',
+      realtorLogo: 'div.ad-preview__logo > a > img@src',
     }])((error, results) => {
       if (error) {
         reject(error);
@@ -101,7 +102,6 @@ function getPropertiesInfo(url) {
       }
     })
   })
-
 }
 
 function getPropertyDetail(url) {
@@ -116,7 +116,7 @@ function getPropertyDetail(url) {
       basicData: '#characteristics > div:nth-child(1) > div.charblock-right',
       equips: '#characteristics > div:nth-child(3) > div.charblock-right',
       date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div',
-      realEstate:'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > a'
+      realEstate: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > a'
     }])((error, results) => {
       if (error) {
         reject(error);
@@ -126,12 +126,12 @@ function getPropertyDetail(url) {
     })
   })
 }
-
 
 function getPropertyListedDate(url) {
   return new Promise((resolve, reject) => {
     x(url, 'body > div.body > div.detail', [{
-      date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div'
+      date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div',
+      realEstate: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > a'
     }])((error, results) => {
       if (error) {
         reject(error);
@@ -142,12 +142,12 @@ function getPropertyListedDate(url) {
   })
 }
 
-
 app.post("/props", (req, res) => {
 
   const { url } = req.body;
-  const latestUrl = url + 'fecharecientedesde-desc/'
-  getPropertiesInfo(latestUrl)
+  console.log(url)
+
+  getPropertiesInfo(url)
     .then((data) => {
       res.status(200).send({ data, success: true });
     })
@@ -193,7 +193,7 @@ app.post('/', (req, res) => {
 
 app.post('/detail', (req, res) => {
 
-  const { url } = req.body; 
+  const { url } = req.body;
   //phone inc
   // const url = "https://www.pisos.com/comprar/piso-burela_centro_urbano-945856908238215_109700/"
   getPropertyDetail(url)
