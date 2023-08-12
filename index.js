@@ -225,10 +225,11 @@ async function saveToMongo(url) {
     try {
       let isMoreData = 1;
       for (let i = 1; i < 6; i++) {
-        if (!isMoreData) break;
+        // if (!isMoreData) break;
         await getPropertyCards(url + i)
           .then((data) => {
             console.log(data.length)
+            console.log(url + i)
             if (data.length > 0)
               saveOrUpdateProperties(data)
             else isMoreData = 0;
