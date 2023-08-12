@@ -15,14 +15,15 @@ const mongoose = require('mongoose');
 let chrome = {};
 let puppeteer;
 
-ConnectToMongo();
-
-if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-  chrome = require("chrome-aws-lambda");
-  puppeteer = require("puppeteer-core");
-} else puppeteer = require("puppeteer");
+(async function scrapeData() {
+  await ConnectToMongo();
+})()
 
 
+// if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+//   chrome = require("chrome-aws-lambda");
+//   puppeteer = require("puppeteer-core");
+// } else puppeteer = require("puppeteer");
 
 
 app.use(express.json());
@@ -218,12 +219,15 @@ async function getRealEstateContact(url) {
 async function saveToMongo(url) {
   if (url[url.length - 1] === '/' || url[url.length - 1] === '1') {
     try {
+      let isMoreData = 1;
       for (let i = 1; i < 11; i++) {
+        if (!isMoreData) break;
         await getPropertyCards(url + i)
           .then((data) => {
             console.log(data.length)
             if (data.length > 0)
               saveOrUpdateProperties(data)
+            else isMoreData = 0;
           })
           .catch((error) => {
             console.log(error)

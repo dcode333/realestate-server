@@ -1,17 +1,14 @@
 const mongoose = require("mongoose");
-const url = process.env.MONGO_URL || "mongodb+srv://admin-umair:test123@cluster0.xg387ne.mongodb.net/PisosDB";
+const url = "mongodb+srv://admin-umair:test123@cluster0.xg387ne.mongodb.net/PisosDB";
 
-const ConnectToMongo = () => {
-    mongoose
-        .connect(url, {
+const ConnectToMongo = async () => {
+    try {
+        await mongoose.connect(url, {
             useNewUrlParser: true,
-        })
-        .then(() => {
-            console.log("DB Connection Succesful");
-        })
-        .catch((e) => {
-            console.log("Something went wrong Umair ! : ", e);
         });
+        console.log("DB Connection Successful");
+    } catch (error) {
+        console.log("Something went wrong Umair ! : ", error);
+    }
 };
-
 module.exports = ConnectToMongo;
