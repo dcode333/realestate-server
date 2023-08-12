@@ -31,6 +31,16 @@ app.use(cors());
 
 // Utils----------------------------------------------------------------------------------------------------------------
 
+function closeMongoDBConnection() {
+  mongoose.connection.close()
+    .then(() => {
+      console.log('MongoDB connection closed');
+    })
+    .catch((error) => {
+      console.error('Error closing MongoDB connection:', error);
+    });
+}
+
 
 function isSelectorPresent(url, selector) {
   return new Promise((resolve, reject) => {
@@ -220,7 +230,7 @@ async function saveToMongo(url) {
   if (url[url.length - 1] === '/' || url[url.length - 1] === '1') {
     try {
       let isMoreData = 1;
-      for (let i = 1; i < 11; i++) {
+      for (let i = 1; i < 6; i++) {
         if (!isMoreData) break;
         await getPropertyCards(url + i)
           .then((data) => {
@@ -238,6 +248,7 @@ async function saveToMongo(url) {
     }
 
   }
+  closeMongoDBConnection();
 }
 
 // Routes----------------------------------------------------------------------------------------------------------------
