@@ -5,8 +5,6 @@ const app = express();
 const cors = require('cors');
 const ConnectToMongo = require("./Utlis/connection");
 const { saveOrUpdateProperties } = require('./Utlis/utils');
-const fastcsv = require('fast-csv');
-const fs = require('fs');
 const realEstateData = require('./Models/properties');
 
 const baseUrl = 'https://www.pisos.com/';
@@ -14,11 +12,6 @@ const mongoose = require('mongoose');
 
 let chrome = {};
 let puppeteer;
-
-(async function scrapeData() {
-  await ConnectToMongo();
-})()
-
 
 // if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
 //   chrome = require("chrome-aws-lambda");
@@ -227,6 +220,7 @@ async function getRealEstateContact(url) {
 }
 
 async function saveToMongo(url) {
+  await ConnectToMongo();
   if (url[url.length - 1] === '/' || url[url.length - 1] === '1') {
     try {
       let isMoreData = 1;
@@ -236,7 +230,17 @@ async function saveToMongo(url) {
           .then((data) => {
             console.log(data.length)
             if (data.length > 0)
-              saveOrUpdateProperties(data)
+              saveOrUpdateProperties([{
+                "id": "34171672067.515632",
+                "price": "\n                        80.000 €\n                    ",
+                "description": "Casa en calle de Martín Mora",
+                "subDescription": "Sabiote",
+                "attributeA": "4 habs.",
+                "attributeB": "2 baños",
+                "attributeC": "109 m²",
+                "punchLine": "Se vende estupenda casa 2 plantas en sabiote, con 109m² construidos y 71m² de superficie, consta de entrada, salón, cocina, despen...",
+                "href": "/comprar/casa-sabiote_centro_urbano-34171672067_515632/"
+          }])
             else isMoreData = 0;
           })
           .catch((error) => {
@@ -295,9 +299,8 @@ app.post("/props", async (req, res) => {
 
   const { url } = req.body;
 
-
   getPropertyCards(url)
-    .then((data) => {
+    .then((data) => { 
       saveToMongo(url);
       res.status(200).send({ data, success: true });
     })
@@ -308,6 +311,7 @@ app.post("/props", async (req, res) => {
 });
 
 app.get('/csv', async (req, res) => {
+  await ConnectToMongo();
   try {
     const data = await realEstateData.find()
       .select('-_id Description PriceOld PriceNew UpdatedOn Reference');
@@ -322,6 +326,7 @@ app.get('/csv', async (req, res) => {
 });
 
 app.get('/deletedb', async (req, res) => {
+  await ConnectToMongo();
 
   try {
     await realEstateData.deleteMany();
