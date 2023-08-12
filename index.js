@@ -241,7 +241,7 @@ async function saveToMongo(url) {
       console.log(error)
     }
 
-  } 
+  }
 }
 
 // Routes----------------------------------------------------------------------------------------------------------------
@@ -289,8 +289,8 @@ app.post("/props", async (req, res) => {
   const { url } = req.body;
 
   getPropertyCards(url)
-    .then((data) => { 
-      saveToMongo(url);
+    .then(async (data) => {
+      await saveToMongo(url);
       res.status(200).send({ data, success: true });
     })
     .catch((error) => {
