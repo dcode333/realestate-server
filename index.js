@@ -230,17 +230,7 @@ async function saveToMongo(url) {
           .then((data) => {
             console.log(data.length)
             if (data.length > 0)
-              saveOrUpdateProperties([{
-                "id": "34171672067.515632",
-                "price": "\n                        80.000 €\n                    ",
-                "description": "Casa en calle de Martín Mora",
-                "subDescription": "Sabiote",
-                "attributeA": "4 habs.",
-                "attributeB": "2 baños",
-                "attributeC": "109 m²",
-                "punchLine": "Se vende estupenda casa 2 plantas en sabiote, con 109m² construidos y 71m² de superficie, consta de entrada, salón, cocina, despen...",
-                "href": "/comprar/casa-sabiote_centro_urbano-34171672067_515632/"
-          }])
+              saveOrUpdateProperties(data)
             else isMoreData = 0;
           })
           .catch((error) => {
@@ -251,8 +241,7 @@ async function saveToMongo(url) {
       console.log(error)
     }
 
-  }
-  closeMongoDBConnection();
+  } 
 }
 
 // Routes----------------------------------------------------------------------------------------------------------------
