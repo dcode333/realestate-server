@@ -3,15 +3,35 @@ const x = Xray();
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const ConnectToMongo = require("./Utlis/connection");
+const { saveOrUpdateProperties } = require('./Utlis/utils');
+const fastcsv = require('fast-csv');
+const fs = require('fs');
+const realEstateData = require('./Models/properties');
+
 const baseUrl = 'https://www.pisos.com/';
-// let chrome = {};
-// let puppeteer;
+const mongoose = require('mongoose');
+
+let chrome = {};
+let puppeteer;
+
+ConnectToMongo();
+
+if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+  chrome = require("chrome-aws-lambda");
+  puppeteer = require("puppeteer-core");
+} else puppeteer = require("puppeteer");
+
+
+
 
 app.use(express.json());
 app.use(cors());
 
+// Utils----------------------------------------------------------------------------------------------------------------
 
-function isPresent(url, selector) {
+
+function isSelectorPresent(url, selector) {
   return new Promise((resolve, reject) => {
     x(url, selector, [{
       class: '@class',
@@ -26,9 +46,9 @@ function isPresent(url, selector) {
 
 }
 
-function getProvincesInfo(url) {
+function getProvincesNames(url) {
   return new Promise((resolve, reject) => {
-    isPresent(url, '#ComponenteSEO').then((results) => {
+    isSelectorPresent(url, '#ComponenteSEO').then((results) => {
       if (results?.length > 0) {
         x(url, `#ComponenteSEO > div.seolinks-zones.clearfix > div.column`, [{
           links: x('a', [{
@@ -78,7 +98,7 @@ function getProvincesInfo(url) {
   })
 }
 
-function getPropertiesInfo(url) {
+function getPropertyCards(url) {
   return new Promise((resolve, reject) => {
     x(url, '#main > div.grid__body > div > div.grid__wrapper > div.ad-preview', [{
       id: '@id',
@@ -127,7 +147,7 @@ function getPropertyDetail(url) {
   })
 }
 
-function getPropertyListedDate(url) {
+function getPropertyListedInfo(url) {
   return new Promise((resolve, reject) => {
     x(url, 'body > div.body > div.detail', [{
       date: 'div.generic-block > div > div.container-right > div.owner-data > div.owner-data-info > div',
@@ -142,30 +162,94 @@ function getPropertyListedDate(url) {
   })
 }
 
-app.post("/props", (req, res) => {
+async function getRealEstateContact(url) {
 
-  const { url } = req.body;
-  console.log(url)
+  let options = { headless: 'new' };
+  if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+    options = {
+      args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
+      defaultViewport: chrome.defaultViewport,
+      executablePath: await chrome.executablePath,
+      headless: 'new',
+      ignoreHTTPSErrors: true,
+    };
+  }
+  const browser = await puppeteer.launch(options);
+  const page = await browser.newPage();
 
-  getPropertiesInfo(url)
-    .then((data) => {
-      res.status(200).send({ data, success: true });
-    })
-    .catch((error) => {
-      res.status(500).send({ error, success: false });
-    })
+  try {
+    await page.goto(url);
 
-});
+    // Wait for the anchor element to be visible
+    const linkSelector = '#dvFormContactar > div.floatcontact-phone.phone > a.link';
+    await page.waitForSelector(linkSelector)
+      .then(() => {
+        console.log('linkSelector found');
+      })
+      .catch(() => {
+        console.log('linkSelector not found');
+      })
+      ;
+
+    const linkElement = await page.$(linkSelector);
+
+    if (linkElement) {
+      // Click the anchor element
+      await linkElement.click();
+
+    }
+
+    // Wait for the phone number to load
+    const phoneNumberSelector = '#dvFormContactar > div.floatcontact-phone.phone > span.number.one';
+    await page.waitForSelector(phoneNumberSelector);
+
+    // Extract phone number text
+    const phoneNumber = await page.$eval(phoneNumberSelector, span => span.textContent);
+
+    return phoneNumber.trim();
+
+  } catch (error) {
+    console.error('Error:', error);
+    await browser.close();
+    throw error;
+  }
+}
+
+async function saveToMongo(url) {
+  if (url[url.length - 1] === '/' || url[url.length - 1] === '1') {
+    try {
+      for (let i = 1; i < 11; i++) {
+        await getPropertyCards(url + i)
+          .then((data) => {
+            console.log(data.length)
+            if (data.length > 0)
+              saveOrUpdateProperties(data)
+          })
+          .catch((error) => {
+            console.log(error)
+          })
+      }
+    } catch (error) {
+      console.log(error)
+    }
+
+  }
+}
+
+// Routes----------------------------------------------------------------------------------------------------------------
+
+
 
 app.get("/", (req, res) => {
 
-  getProvincesInfo(baseUrl)
+  getProvincesNames(baseUrl)
     .then((data) => {
       res.status(200).send({ data, success: true });
     })
     .catch((error) => {
       res.status(500).send({ error, success: false });
     })
+
 });
 
 
@@ -173,12 +257,12 @@ app.post('/', (req, res) => {
 
   const { url } = req.body;
 
-  isPresent(url, '.grid__wrapper')
+  isSelectorPresent(url, '.grid__wrapper')
     .then(results => {
       if (results?.length > 0)
         res.status(200).send({ data: [], flag: 'bitem', success: true });
       else {
-        getProvincesInfo(url)
+        getProvincesNames(url)
           .then(data => {
             res.status(200).send({ data, flag: 'edium', success: true });
           })
@@ -191,11 +275,52 @@ app.post('/', (req, res) => {
 
 });
 
+app.post("/props", async (req, res) => {
+  // console.log(new Date().toLocaleDateString())
+
+  const { url } = req.body;
+
+
+  getPropertyCards(url)
+    .then((data) => {
+      saveToMongo(url);
+      res.status(200).send({ data, success: true });
+    })
+    .catch((error) => {
+      res.status(500).send({ error, success: false });
+    })
+
+});
+
+app.get('/csv', async (req, res) => {
+  try {
+    const data = await realEstateData.find()
+      .select('-_id Description PriceOld PriceNew UpdatedOn Reference');
+
+    res.status(200).json({ data, success: true });
+
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error, success: false });
+  }
+});
+
+app.get('/deletedb', async (req, res) => {
+
+  try {
+    await realEstateData.deleteMany();
+    res.status(200).send({ success: true });
+  } catch (error) {
+    res.status(500).send({ error, success: false });
+  }
+
+})
+
 app.post('/detail', (req, res) => {
 
   const { url } = req.body;
-  //phone inc
-  // const url = "https://www.pisos.com/comprar/piso-burela_centro_urbano-945856908238215_109700/"
+
   getPropertyDetail(url)
     .then((data) => {
       res.status(200).send({ data, success: true });
@@ -209,13 +334,22 @@ app.post('/date', (req, res) => {
 
   const { url } = req.body;
 
-  getPropertyListedDate(url)
+  getPropertyListedInfo(url)
     .then((data) => {
       res.status(200).send({ data, success: true });
     })
     .catch((error) => {
       res.status(500).send({ error, success: false });
     })
+})
+
+app.post('/contact', async (req, res) => {
+
+  const { url } = req.body;
+
+  const contact = await getRealEstateContact(url);
+
+  res.send({ contact, success: true });
 })
 
 
@@ -225,3 +359,6 @@ app.listen(PORT, () => {
 })
 
 module.exports = app;
+
+
+
