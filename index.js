@@ -7,9 +7,10 @@ app.use(express.json());
 
 
 app.get('/vercel', (req, res) => {
+  res.send({})  
   axios.get('https://sparkling-bass-crown.cyclic.app/scrapeview')
     .then(response => {
-      res.send({})
+      res.send({})  
     })
     .catch(err => {
       console.log(err)
