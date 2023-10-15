@@ -6,7 +6,7 @@ app.use(cors());
 app.use(express.json());
 
 
-app.get('/', (req, res) => {
+app.get('/vercel', (req, res) => {
   axios.get('https://sparkling-bass-crown.cyclic.app/scrapeview')
     .then(response => {
       res.send({})
@@ -16,12 +16,12 @@ app.get('/', (req, res) => {
     })
 })
 
-app.get('/call', (req, res) => {
+app.get('/', (req, res) => {
   res.send({ message: 'Hello World' })
 })
 
 
-  
+
 
 
 const PORT = process.env.PORT || 4000;
