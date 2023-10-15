@@ -16,8 +16,12 @@ app.get('/', (req, res) => {
     })
 })
 
+app.get('/call', (req, res) => {
+  res.send({ message: 'Hello World' })
+})
 
 
+  
 
 
 const PORT = process.env.PORT || 4000;
